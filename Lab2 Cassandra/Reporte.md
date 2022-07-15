@@ -14,6 +14,8 @@ David González Pérez
 
 # Introducción 
 
+
+
 https://developer.ibm.com/tutorials/ba-set-up-apache-cassandra-architecture/
 
 
