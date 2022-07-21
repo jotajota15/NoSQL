@@ -61,8 +61,10 @@ CREATE TYPE A_StateType AS OBJECT(
 name VARCHAR2(25),
 extension mdsys.sdo_geometry
 );
+
 Create table A_State of A_StateType
 object identifier is system generated;
+
 
 Create table A_Park of A_StateType
 object identifier is system generated;
@@ -91,9 +93,6 @@ SDO_ELEM_INFO_ARRAY(1,2,1), -- compound line string
 SDO_ORDINATE_ARRAY(1,5.5, 5,8,10,7)
 )
 )
-
-
-
 
 -- Insercion de Estado 2
 INSERT INTO A_State VALUES(
@@ -157,6 +156,7 @@ INSERT INTO A_Park VALUES(
           -- define rectangle (lower left and upper right) with
           -- Cartesian-coordinate data
 ));
+SET SERVEROUTPUT ON
 
 INSERT INTO A_Park VALUES(
   'P4',
@@ -208,12 +208,21 @@ FROM A_Park c_b, A_State c_d
 where   SDO_GEOM.RELATE(c_b.extension, 'anyinteract', c_d.extension, 0.005) = 'TRUE'
 order by c_d.name, c_b.name;
 --Consulta f
-select SDO_GEOM.SDO_LENGTH(A_Other.extension) from A_Other
-where A_Other.name = 'C1'
+select A_other.name, SDO_GEOM.SDO_LENGTH(A_Other.extension) 
+from A_Other
+where A_Other.name = 'C1';
+
 --Consulta g FALTA
 --https://docs.oracle.com/database/121/SPATL/querying-spatial-data.htm#SPATL593
-select SDO_GEOM.SDO_LENGTH(a.extension, p.extension) from A_Other a, A_park p 
-where a.name = 'C1' and SDO_GEOM.RELATE(a.extension, 'anyinteract', p.extension, 0.005) = 'TRUE'
+
+--https://stackoverflow.com/questions/590551/sum-columns-with-null-values-in-oracle
+--https://community.oracle.com/tech/apps-infra/discussion/930663/calculate-the-length-of-lines-within-a-polygon
+select sum(NVL(sdo_geom.sdo_length(sdo_geom.sdo_intersection(A_Park.extension,A_Other.extension, 0.005), 0.005),0)) AS "Distancia"
+from A_Other, A_Park
+WHERE A_Other.name = 'C1';
+
+
+
 
 --Consulta h
 SELECT p.name
@@ -221,12 +230,23 @@ SELECT p.name
   WHERE  A.name = 'Yo' and SDO_WITHIN_DISTANCE( A.extension, p.extension, 'distance=2') = 'TRUE';
 
 --Consulta i
+--https://community.oracle.com/tech/apps-infra/discussion/859488/ora-13365-layer-srid-does-not-match-geometry-srid#:~:text=Make%20sure%20that%20your%20metadata,check%20geometry%20and%20metadata%20srid.&text=The%20spatial%20layer%20has%20a,SRID%20specified%20for%20the%20layer.
+-- https://community.oracle.com/tech/apps-infra/discussion/592254/window-srid-does-not-match-layer-srid-question
+select t.extension.sdo_srid from A_Other t;
+select srid from user_sdo_geom_metadata where table_name='A_OTHER' and column_name='EXTENSION' ;
+update A_OTHER s set s.extension.sdo_srid = 4326;
 
-CREATE INDEX A_Park_Index
+select t.extension.sdo_srid from A_Park t;
+select srid from user_sdo_geom_metadata where table_name='A_PARK' and column_name='EXTENSION' ;
+update A_OTHER s set s.extension.sdo_srid = 4326;
+
+CREATE INDEX A_PARK_INDEX
 ON A_Park(extension) INDEXTYPE IS MDSYS.SPATIAL_INDEX;
+select * from USER_SDO_GEOM_METADATA
 
 
--- problema con indice
-SELECT p.name
-  FROM  A_Park p, A_Other A
-  WHERE  A.name = 'Yo' and SDO_NN(A.extension, p.extension, 'sdo_num_res=2') = 'TRUE';
+
+-- REQUIERE DE INDICE
+SELECT /*+ INDEX (A_Park A_PARK_INDEX) */ A_Park.name 
+  FROM  A_Park , A_Other
+  WHERE  A_Other.name = 'Yo' and SDO_NN(A_Park.extension,A_Other.extension, 'sdo_num_res=3') = 'TRUE';
