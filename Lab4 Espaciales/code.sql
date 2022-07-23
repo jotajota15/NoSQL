@@ -5,11 +5,9 @@ Nombre VARCHAR2(32),
 Figura SDO_GEOMETRY);
 
 
--- Revision de tablas
-
-select * MDSYS.SDO_GEOM_METADATA_TABLE
-select * FROM USER_SDO_GEOM_METADATA
-
+-- Revision de tablas sin haberse ingresado al sistema
+select * FROM MDSYS.SDO_GEOM_METADATA_TABLE;
+select * FROM USER_SDO_GEOM_METADATA;
 
 -- Parte 2
 
@@ -18,6 +16,10 @@ INSERT INTO user_sdo_geom_metadata( TABLE_NAME, COLUMN_NAME, DIMINFO, SRID) VALU
 'Figura',
 SDO_DIM_ARRAY( SDO_DIM_ELEMENT('X', 0, 20, 0.005), SDO_DIM_ELEMENT('Y', 0, 20, 0.005) ),
 NULL);
+-- Revision de tablas ya ingresado al sistema
+select * FROM MDSYS.SDO_GEOM_METADATA_TABLE;
+select * FROM USER_SDO_GEOM_METADATA;
+
 
 -- Parte 3
 CREATE INDEX Ejemplo_Geometria_idx
@@ -35,13 +37,11 @@ SDO_ORDINATE_ARRAY(1,1, 5,7)
 ));
 
 -- Parte 5
-
 INSERT INTO user_sdo_geom_metadata( TABLE_NAME, COLUMN_NAME, DIMINFO, SRID) VALUES (
 'Ejemplo_Geometria',
 'Figura',
 SDO_DIM_ARRAY( SDO_DIM_ELEMENT('X', 0, 20, 0.005), SDO_DIM_ELEMENT('Y', 0, 20, 0.005) ),
 NULL);
-
 -- Parte 6
 INSERT INTO Ejemplo_Geometria VALUES(
 10,
@@ -156,7 +156,6 @@ INSERT INTO A_Park VALUES(
           -- define rectangle (lower left and upper right) with
           -- Cartesian-coordinate data
 ));
-SET SERVEROUTPUT ON
 
 INSERT INTO A_Park VALUES(
   'P4',
@@ -165,7 +164,7 @@ INSERT INTO A_Park VALUES(
   null, 
   null, 
   SDO_ELEM_INFO_ARRAY(1,1003,3), -- one rectangle (1003 = exterior)
-  SDO_ORDINATE_ARRAY(10.5,8.5, 13.5,10.5) -- only 2 points needed to
+  SDO_ORDINATE_ARRAY(10.5,8.5, 12.5,10.5) -- only 2 points needed to
           -- define rectangle (lower left and upper right) with
           -- Cartesian-coordinate data
 ));
@@ -212,9 +211,8 @@ select A_other.name, SDO_GEOM.SDO_LENGTH(A_Other.extension)
 from A_Other
 where A_Other.name = 'C1';
 
---Consulta g FALTA
+--Consulta g
 --https://docs.oracle.com/database/121/SPATL/querying-spatial-data.htm#SPATL593
-
 --https://stackoverflow.com/questions/590551/sum-columns-with-null-values-in-oracle
 --https://community.oracle.com/tech/apps-infra/discussion/930663/calculate-the-length-of-lines-within-a-polygon
 select sum(NVL(sdo_geom.sdo_length(sdo_geom.sdo_intersection(A_Park.extension,A_Other.extension, 0.005), 0.005),0)) AS "Distancia"
@@ -232,18 +230,21 @@ SELECT p.name
 --Consulta i
 --https://community.oracle.com/tech/apps-infra/discussion/859488/ora-13365-layer-srid-does-not-match-geometry-srid#:~:text=Make%20sure%20that%20your%20metadata,check%20geometry%20and%20metadata%20srid.&text=The%20spatial%20layer%20has%20a,SRID%20specified%20for%20the%20layer.
 -- https://community.oracle.com/tech/apps-infra/discussion/592254/window-srid-does-not-match-layer-srid-question
-select t.extension.sdo_srid from A_Other t;
-select srid from user_sdo_geom_metadata where table_name='A_OTHER' and column_name='EXTENSION' ;
-update A_OTHER s set s.extension.sdo_srid = 4326;
 
+-- Se realiza todo aspecto de indices
+
+select t.extension.sdo_srid from A_Park t;
+select srid from user_sdo_geom_metadata where table_name='A_OTHER' and column_name='EXTENSION' ;
+
+update A_Park s set s.extension.sdo_srid = 4326;
 select t.extension.sdo_srid from A_Park t;
 select srid from user_sdo_geom_metadata where table_name='A_PARK' and column_name='EXTENSION' ;
 update A_OTHER s set s.extension.sdo_srid = 4326;
 
+
 CREATE INDEX A_PARK_INDEX
 ON A_Park(extension) INDEXTYPE IS MDSYS.SPATIAL_INDEX;
 select * from USER_SDO_GEOM_METADATA
-
 
 
 -- REQUIERE DE INDICE
